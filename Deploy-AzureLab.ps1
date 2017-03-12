@@ -16,6 +16,11 @@
     
         This script is provided 'AS IS' with no warranty expressed or implied. Run at your own risk.
 
+        Make sure that you have a valid Azure Subscription. You can connect to a valid Azure Subscription
+        by using the cmdlets Get-AzurePublishSettingsFile and Import-AzurePublishSettingsFile. You can check
+        the currently available Azure Subscriptions in your user profile with Get-AzureAccount and
+        Get-AzureSubscription.
+
         Parts of the code are based on New-AzureVM example script, which can be found under
         https://msdn.microsoft.com/en-us/library/mt125899.aspx
 
@@ -29,31 +34,51 @@
 #Requires -Version 3.0
 #Requires -Module Azure, AzureRM.Profile
 
-## Establish connection to Azure
-# Do some stuff
+## Check if a Azure Subscription is available
+
+if ((Get-AzureSubscription) -ne $null) {
+
+    Write-Host `n
+    Write-Host -ForegroundColor Green 'I have found at least one Azure Subscripion.'
+    Write-Host `n
+}
+
+else {
+
+    Write-Host `n
+    Write-Host -ForegroundColor Red 'Sorry, no Azure Subscription available. Script will end now.'
+    Write-Host `n
+    break
+
+}
+
+break
 
 ## Core Parameters for all entities
+
 $Location = 'WestEurope'
 $VMResourceGroupName = 'lab-vm-rg'
 $NetworkResourceGroupName = 'lab-vnet-rg'
 $Credential = Get-Credential
 
 ## VMs to create
-#$ListofVMs = 'DC01','DC02','CA01'
+## Please do not remove this array.
+## $ListofVMs = 'DC01','DC02','CA01'
+
+$ListofVMs = 'DC01'
 
 ## Create Resource Group for core networking
 
-if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $NetworkResourceGroupName)
-{
-    Write-Output "Resource Group $NetworkResourceGroupName already exists. Skipping this step. "
+if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $NetworkResourceGroupName) {
+    Write-Host -ForegroundColor Red "Resource Group $NetworkResourceGroupName already exists. Skipping this step."
 }
 
-else
-{
+else {
 
     New-AzureRmResourceGroup -Name $NetworkResourceGroupName -Location $Location
 
     ## Create core networking vNets and subnets
+    
     $SubnetName = 'Subnet_192_168_201_0'
     $VNetName = 'Lab-vNet-192_168_201_0'
     $VNetAddressPrefix = '192.168.201.0/24'
@@ -64,20 +89,20 @@ else
 }
 
 ## Create Resource Group for VMs
-if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $VMResourceGroupName)
-{
+
+if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $VMResourceGroupName) {
     Write-Output "Resource Group $VMResourceGroupName already exists. Skipping this step. "
 }
 
-else
-{
+else {
     New-AzureRmResourceGroup -Name $VMResourceGroupName -Location $Location
 }
 
 
 ForEach ($VM in $ListofVMs) {
 
-## VM Config
+    ## VM Config
+    
     $VMName = $VM
     $ComputerName = $VMName
     $VMSize = 'Standard_A2_v2'
@@ -90,6 +115,7 @@ ForEach ($VM in $ListofVMs) {
     $Interface = New-AzureRmNetworkInterface -Name $InterfaceName -ResourceGroupName $NetworkResourceGroupName -Location $Location -SubnetId $VNet.Subnets[0].Id -PublicIpAddressId $PublicIP.Id
 
     ## Setup local VM object
+    
     $StorageAccount = New-AzureRmStorageAccount -ResourceGroupName $VMResourceGroupName -Name $StorageName -Type $StorageType -Location $Location
     $VirtualMachine = New-AzureRmVMConfig -VMName $VMName -VMSize $VMSize
     $VirtualMachine = Set-AzureRmVMOperatingSystem -VM $VirtualMachine -Windows -ComputerName $ComputerName -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
@@ -99,6 +125,6 @@ ForEach ($VM in $ListofVMs) {
     $VirtualMachine = Set-AzureRmVMOSDisk -VM $VirtualMachine -Name $OSDiskName -VhdUri $OSDiskUri -CreateOption FromImage
 
     ## Create the VM in Azure
-    New-AzureRmVM -ResourceGroupName $VMResourceGroupName -Location $Location -VM $VirtualMachine
     
+    New-AzureRmVM -ResourceGroupName $VMResourceGroupName -Location $Location -VM $VirtualMachine
 }
