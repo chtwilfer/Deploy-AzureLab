@@ -41,6 +41,7 @@ if ((Get-AzureSubscription) -ne $null) {
     Write-Host `n
     Write-Host -ForegroundColor Green 'I have found at least one Azure Subscripion.'
     Write-Host `n
+
 }
 
 else {
@@ -70,7 +71,9 @@ $ListofVMs = 'DC01'
 ## Create Resource Group for core networking
 
 if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $NetworkResourceGroupName) {
+
     Write-Host -ForegroundColor Red "Resource Group $NetworkResourceGroupName already exists. Skipping this step."
+
 }
 
 else {
@@ -91,13 +94,16 @@ else {
 ## Create Resource Group for VMs
 
 if ((Get-AzureRmResourceGroup).ResourceGroupname -eq $VMResourceGroupName) {
+
     Write-Output "Resource Group $VMResourceGroupName already exists. Skipping this step. "
+
 }
 
 else {
-    New-AzureRmResourceGroup -Name $VMResourceGroupName -Location $Location
-}
 
+    New-AzureRmResourceGroup -Name $VMResourceGroupName -Location $Location
+
+}
 
 ForEach ($VM in $ListofVMs) {
 
@@ -127,4 +133,5 @@ ForEach ($VM in $ListofVMs) {
     ## Create the VM in Azure
     
     New-AzureRmVM -ResourceGroupName $VMResourceGroupName -Location $Location -VM $VirtualMachine
+
 }
